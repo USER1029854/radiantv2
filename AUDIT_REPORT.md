@@ -188,3 +188,36 @@ None survived. No pair of killed candidates composes into a live unprivileged ch
 The real and current exposure is **F-1**: anyone who still has a live approval to `0xF4B1486DD74D07706052A33d31d7c0AAFD0659E1` is exposed to an unbounded, indefinite sweep by a single key and **should revoke immediately**. The system also carries **F-2** single-EOA upgrade control with no timelock — the exact structural weakness behind the 2024 loss.
 
 **This verdict is a snapshot that rests on mutable state** (the impl pointer and the three controlling EOA keys). It ends the moment a real implementation is re-installed behind the proxy — at which point the market must be re-audited from scratch (including the F-4 rounding class).
+
+---
+
+# Part II — PoC / fork verification (added after review)
+
+All simulations run against **live Arbitrum state** via `eth_call` with state overrides + Multicall3 (RPCs `arbitrum.publicnode.com`, `arb1.arbitrum.io`); nothing broadcast. Compiler solc 0.8.24. Sources/scripts: `audit/Prober.sol`, `audit/Mal.sol`, `audit/Prober2.sol`, `audit/*exposure*.py`, `audit/realized.py`. Verdict: **F-1 and F-2 are confirmed and, if anything, were under-stated. F-3's premise facts are all confirmed on-chain.**
+
+## F-1 — approval sweeper: CONFIRMED, nothing else gates it
+- **Gate (differential):** `f5121a99(USDC,[victim])` from admin `0xc24927bd…` → **executes** (returns `0x`); from a random address → **revert `onlyAdmin`**; a prober contract at a non-admin address calling the pool → **revert** (inner `onlyAdmin`). The sole gate is `msg.sender == 0xc24927bd…` — no pause, no second check.
+- **Live exact-amount PoC** (prober deployed at the admin via `code` override, current state): victim `0xfb2a899d…` USDC **16.872382 → 0**, destination `benefit 0x070ca92f…` **524.429224 → 541.301606** (**+16.872382**). Moves exactly `min(balance, allowance)`.
+- **Realized damage to date** (real reserve-token inflows to `benefit`, priced at the live on-chain oracle, which cross-checks to CoinGecko within 0.1%): **≈ $595,000** already taken from **~300+ distinct victims** — USDT $233k, **WBTC 2.66 ($194k)**, USDC $116k, USDC.e $43k, ARB, DAI.
+- **Current standing exposure** (enumerated every historical approver per token, live `allowance`+`balance` via Multicall3):
+
+  | token | historical approvers | still-OPEN allowance | live balance now | seizable now |
+  |---|--:|--:|--:|--:|
+  | USDC | 28,531 | 6,393 | 2,580 | 43,092 USDC |
+  | USDT | 13,295 | 5,087 | 886 | 4,279 USDT |
+  | USDC.e | 14,648 | 4,580 | 991 | 5,288 USDC.e |
+  | ARB | 17,569 | 3,649 | 1,274 | 216,282 ARB |
+  | WBTC | 5,652 | 751 | 155 | 0.512 WBTC |
+  | WETH | 14 | 7 | 1 | ~0 (WETH used a gateway) |
+
+  **≈ 20,000+ still-open allowances**; **≈ $110,000 seizable at this instant** (USDC $43k + WBTC $37k + ARB $20k + USDC.e $5k + USDT $4k), and it **refills** every time any of those ~20k addresses receives one of these tokens. So F-1 is a live, unbounded-in-time drain — not exaggerated.
+
+## F-2 — single-EOA upgrade control: CONFIRMED end-to-end
+- **Gate:** `setLendingPoolImpl(X)` succeeds from the AP owner (the controller) and via `controller.63fb0b96` from EOA `0x0629b1…`; **reverts `onlyOwner` / `Ownable: caller is not the owner`** for any other caller.
+- **End-to-end drain PoC (one simulated tx, current state):** `EOA 0x0629b1… → controller.63fb0b96 → AP.setLendingPoolImpl(MALICIOUS) → pool.pwn()` drained victim `0xfb2a899d…`'s **entire** balance **16.872382 USDC → attacker `0x…bEEF`** (an arbitrary address, **not** the sweeper's `benefit`). Proves the owner key can install arbitrary logic and take the **full** balance of **any** of the ~20k open-allowance approvers, to **anywhere**, in a single transaction.
+
+## Correction to Part-I sizing (F-2)
+Part I said F-2's "immediate pooled value at risk is 0." That is right for *pooled TVL* (rTokens are empty) but **understates the live exposure**: F-2 reaches the **same live user approvals as F-1** — **~$110k seizable now, ~20k standing allowances, plus all future balances of those addresses** — and, unlike the sweeper, sends them to an arbitrary destination. F-1 and F-2 hit the **same at-risk pool** (not additive); F-1 is the drip currently realizing it (~$595k so far), F-2 is the one-tx total-drain-and-redirect upgrade path.
+
+## F-3 — premise facts confirmed (attribution is not a fork question)
+Confirmed on-chain: pool getters revert (frozen), all 12 rTokens hold 0, proxy holds 0, and control sits with EOAs. The AaveOracle is **live and accurate** (ARB $0.0909, WBTC $73,025 — both match CoinGecko), so the "if re-enabled" oracle concern (F-4) is about *staleness risk on a dead feed being reused*, not a current misprice. Whether the operator EOAs are the Oct-2024 attacker or a whitehat cannot be settled by a fork; the ~$595k consolidation to an unlabeled EOA remains the evidence, and the user action (revoke) is identical either way.
