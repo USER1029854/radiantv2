@@ -1,0 +1,30 @@
+[
+  {
+    "type": "function",
+    "name": "Unresolved_febb4f76",
+    "inputs": [
+      {
+        "name": "arg0",
+        "type": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "multicall",
+    "inputs": [
+      {
+        "name": "arg0",
+        "type": "address[]"
+      },
+      {
+        "name": "arg1",
+        "type": "bytes[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "pure"
+  }
+]
