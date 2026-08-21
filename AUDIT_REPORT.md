@@ -276,3 +276,21 @@ This is the decisive triage axis, and it must not be blurred.
 - *Realized user-loss & custody severity:* **high and ongoing** (~$595k taken and growing on Arbitrum), but it is a **captured-key / malicious-operator** condition, not an exploitable code flaw — so it is addressed by revocation and user warnings, never by a contract fix or by defending against an anonymous exploiter.
 
 **Net for triage:** if the question is "can an unprivileged attacker take funds from these contracts?" the answer is **no, on every chain** — and that is not a caveat that lowers the finding, it is the finding's correct shape. The live loss runs entirely through **attacker-held keys acting on standing user approvals**, and the entire remediation surface is on the approver side.
+
+---
+
+# Part V — Live, preventable exposure (the actionable output)
+
+The only preventable loss surface is **standing user approvals to the two attacker-controlled pools** (revocation is the sole mitigation — no code fix or protocol action exists). Measured on-chain today by enumerating every historical approver per token and reading live `allowance`+`balance` via Multicall3:
+
+**Arbitrum pool `0xF4B1486D…` (spender to revoke):**
+- **26,438 distinct wallets** currently hold ≥1 open approval to the pool → complete revoke population (`audit/arbitrum_standing_approvals.txt`).
+- **8,021 of them hold a balance right now → ~$115,833 seizable this instant** (`min(balance, allowance)`, oracle-priced; full per-address breakdown in `audit/arbitrum_exposure.csv`).
+- Per-token live at-risk: USDC $43.2k · WBTC 0.51 ($37.7k) · ARB 216k ($20.3k) · USDC.e $7.1k · USDT $4.9k · DAI $2.2k · wstETH $0.4k · weETH ~$0.
+- Every open approval also exposes all *future* balances of that wallet until revoked. ~$595k already swept over ~22 months; last sweep ~9h before this report.
+
+**BNB Chain pool `0xd50cf00b…` (spender to revoke):** same mechanism and same attacker owner key; bot dormant ~69 days and residuals largely exhausted (collection address holds ~$40). Full enumeration blocked by lack of free BSC archive access — revoke as a precaution regardless.
+
+**Not affected:** Ethereum-mainnet Radiant (`0xA950974f…`, normal code under a 3-day timelock) and Base — no revocation needed there for this issue.
+
+**Deliverables:** `REVOKE_ADVISORY.md` (user-facing), `audit/arbitrum_exposure.csv` (8,021 wallets losing funds now, sorted by USD), `audit/arbitrum_standing_approvals.txt` (26,438 wallets to warn/revoke).

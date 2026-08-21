@@ -1,0 +1,29 @@
+  USDC: approvers=28548 open=6408 live=2585 at_risk=$43,207 (px $0.9999)
+  USDT: approvers=17101 open=6825 live=1220 at_risk=$4,881 (px $0.9997)
+  USDC.e: approvers=20187 open=7269 live=1607 at_risk=$7,126 (px $0.9999)
+  ARB: approvers=25100 open=5079 live=2002 at_risk=$20,322 (px $0.0908)
+  WBTC: approvers=5652 open=751 live=155 at_risk=$37,680 (px $73,600.4862)
+  DAI: approvers=8835 open=1995 live=649 at_risk=$2,245 (px $0.9999)
+  wstETH: approvers=4746 open=543 live=125 at_risk=$370 (px $2,899.0373)
+  weETH: approvers=2711 open=165 live=25 at_risk=$3 (px $2,575.9773)
+
+=== ARBITRUM consolidated: 8021 addresses exposed now, $115,833 seizable this instant ===
+Top 15 exposed addresses:
+  0x7e5b7a5845a14e29ba0cc82f1f3e72535007de0f  $ 15,998.28  USDC:16000.00
+  0x5cc687d0168859cbd422c4773a00cfcf160453fc  $ 15,901.48  USDT:0.48;USDC.e:0.80;ARB:175099.32;DAI:0.13
+  0x1371ec86d56e21136f6650685713cbfd12910172  $ 15,067.15  USDC:3.73;WBTC:0.20
+  0x256843ddd1345bbf2943ab33b11ccf68d80f769e  $ 14,720.10  WBTC:0.20
+  0xd0b5177a4837c427ff72b4a15dd976ce1c547b01  $ 11,884.18  USDC:11885.45
+  0xd0e8e096d70b8cbb704e972df7a82e536f74fb8c  $  4,112.76  WBTC:0.06
+  0x1b11b544fa42e1709599606bcaa0928fc8b21c06  $  3,008.89  USDC:3009.21
+  0x756bc95a8d0db3235c92fbdbe86809af63201706  $  2,111.27  USDC:2111.49
+  0x74a46eae0ef759312f21afc2447e2a4989e51770  $  2,089.01  USDT:2089.60
+  0x09ca728f4901cefb75610a21866ba8891bafed19  $  2,047.78  USDC:2048.00
+  0xc4591fd6eb7c1f5f5e5d986743d497715217a2a2  $  1,992.83  WBTC:0.03
+  0x225bc778ff20a3b50a06e9a2ffadf7ccd5d7728e  $  1,729.47  ARB:19045.73
+  0x06355362cd8ab65f6349535d0aac83dd911c3d54  $  1,600.08  USDC.e:1600.30
+  0xc797396e336c31e186d3fd40b57f6867a72d856f  $  1,489.18  USDC:1489.34
+  0x6a266b27ee1b16ab9986d071e89504ea2eea6b3e  $  1,130.18  USDC:1130.30
+
+Standing allowances (any future balance at risk until revoked):
+  ~29035 open allowance positions across tokens (dedup addresses fewer)

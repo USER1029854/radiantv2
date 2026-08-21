@@ -1,0 +1,1 @@
+distinct addresses with >=1 open allowance to the Arbitrum pool: 26438
