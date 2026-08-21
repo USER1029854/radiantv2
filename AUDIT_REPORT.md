@@ -252,3 +252,27 @@ Radiant deployed on four chains. State verified independently on each (weakest-d
 | **Base** | (Radiant Base market) | — | — | sweeper operator EOA `0x911215cf…` has **nonce 0 on Base** (never transacted) | **NO — operator never present** |
 
 **Direct answer to "are the mainnet pools at risk now?":** **Ethereum-mainnet Radiant is *not* at risk** from this — it runs verified normal code under a 3-day timelock the attacker does not control, and holds only dust. **Base is unaffected.** The attacker-controlled pools are **Arbitrum (actively draining today)** and **BNB Chain (backdoor live but dormant)** — and on both, the exposure is residual *user approvals*, since the pools' own principal was already drained in 2024. The cross-chain reuse (same owner key `0x911215cf…`, same collection address `0x070ca92f…`, sweeper infra pre-positioned on Arbitrum, BSC, and mainnet-laundering rails **before** the Oct-16 hack) is itself strong corroboration that one actor — the 2024 attacker — runs all of it.
+
+---
+
+# Part IV — Classification for loss control: unprivileged exposure is nil
+
+This is the decisive triage axis, and it must not be blurred.
+
+**Unprivileged exploitability = NONE.** Every value-moving entry point across every resolved contract (stub `f5121a99`/`setBenefit`, controller `execute`/`deployChild`, AddressesProvider setters, child sweeper) is gated by `msg.sender == <fixed EOA>`. An actor holding no keys can move nothing — reconfirmed by the negative PoCs (`onlyAdmin` / `onlyOwner` / `Ownable: caller is not the owner` all revert on current state) and the entry-point ledger. There is **no missing guard, no public-secret/signature gate, no callback or hook, no reachable initializer, no storage-collision an outsider can write** — i.e. nothing to patch, and nothing an arbitrary attacker can trigger. So on the classic "unprivileged attacker exploits a code flaw" axis, the result is a clean **negative**.
+
+**But "privileged" here is not the usual out-of-scope kind.** Three categories must be kept apart:
+1. *Unprivileged code-flaw exploit* → **none** (above). Fixable in code; nothing to fix.
+2. *Trusted operator abusing legitimate power* (normal centralization caveat, out of scope as an "attack") → not the situation.
+3. *Privileged keys captured by a hostile party, already exercised* → **this is the situation** on Arbitrum and BSC. The admin/owner roles are held by the Oct-2024 attacker and used ~daily. It is a **realized compromise**, not a hypothetical "the admin might rug."
+
+**Loss-control consequences (why the distinction is essential):**
+- **Nothing to fix in the target's code.** No code change alters the exposure; there is no unprivileged bug behind it.
+- **No protocol-side recovery exists.** The attacker owns the pool's upgrade authority (AddressesProvider owner on Arbitrum; equivalent on BSC), so Radiant cannot reclaim or re-secure the pool — which is precisely why it has sat frozen for ~22 months.
+- **The only mitigation is user-side: revoke ERC-20 approvals** to `0xF4B1486D…` (Arbitrum) and `0xd50cf00b…` (BSC). Not a patch, not a governance action — token-approval revocation by each remaining approver.
+
+**Two-axis severity, stated separately so neither misleads:**
+- *Unprivileged code-vulnerability severity:* **none / N-A.**
+- *Realized user-loss & custody severity:* **high and ongoing** (~$595k taken and growing on Arbitrum), but it is a **captured-key / malicious-operator** condition, not an exploitable code flaw — so it is addressed by revocation and user warnings, never by a contract fix or by defending against an anonymous exploiter.
+
+**Net for triage:** if the question is "can an unprivileged attacker take funds from these contracts?" the answer is **no, on every chain** — and that is not a caveat that lowers the finding, it is the finding's correct shape. The live loss runs entirely through **attacker-held keys acting on standing user approvals**, and the entire remediation surface is on the approver side.
