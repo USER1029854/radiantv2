@@ -221,3 +221,34 @@ Part I said F-2's "immediate pooled value at risk is 0." That is right for *pool
 
 ## F-3 — premise facts confirmed (attribution is not a fork question)
 Confirmed on-chain: pool getters revert (frozen), all 12 rTokens hold 0, proxy holds 0, and control sits with EOAs. The AaveOracle is **live and accurate** (ARB $0.0909, WBTC $73,025 — both match CoinGecko), so the "if re-enabled" oracle concern (F-4) is about *staleness risk on a dead feed being reused*, not a current misprice. Whether the operator EOAs are the Oct-2024 attacker or a whitehat cannot be settled by a fork; the ~$595k consolidation to an unlabeled EOA remains the evidence, and the user action (revoke) is identical either way.
+
+---
+
+# Part III — Cost to execute, liveness, and cross-chain scope (added after review)
+
+## 1. Cost to execute: ~zero capital — this is a *key-gated* drain, not a capital/flash-loan attack
+These findings are **not** economic exploits with a capital hurdle (no $Xm flash loan, no price manipulation, no stake). The cost is **gas only**, and the barrier is **possession of a specific private key**:
+- **F-1 sweep:** one `f5121a99` call — measured **65,022–130,846 gas ≈ $0.002–0.007** on Arbitrum (from real on-chain sweeps). No capital.
+- **F-2 upgrade+drain:** `execute → setLendingPoolImpl → drain` — gas only, no capital.
+- For **anyone without the key** the cost is effectively infinite: the call **reverts** (`onlyAdmin` / `onlyOwner`), proven live. For the **keyholder** it is nearly free and the "profit" is 100% of what it moves.
+
+**Reframing that matters:** because the gate is identity (a held key), not capital, the usual "profit > cost" economic test doesn't apply — the profit-to-cost ratio is essentially infinite for the keyholder. The correct question is *who holds the key*, and the on-chain evidence says the **October-2024 attacker** does (see Part I §F-3 + the cross-chain pre-positioning below). So this is best read as **"the 2024 attacker retains a live, free-to-use backdoor over residual user approvals,"** not "anyone can drain it."
+
+## 2. Is it at risk *today*, or just leftover from the 2024 exploit? — Live today, and still growing
+It is **not** a frozen relic of the hack; it is the hack's **persistent, still-running harvester**:
+- **Last Arbitrum sweep: 2026-08-20 15:22 UTC — ~9 hours before this analysis**, with multiple sweeps over the preceding days (all succeed).
+- The **~$595k Arbitrum realized figure is cumulative over ~22 months and still increasing** — every time one of the ~20k open-allowance addresses receives USDC/USDT/ARB/etc., the next sweep takes it.
+- The live PoC in Part II used a victim who had a balance **right now**; the ~20k open allowances and ~$110k instantaneous snapshot are **current reads**.
+- Distinction worth stating plainly: the **large 2024 principal drain (~$50M+) is finished** (all rTokens are empty). What is **live now** is the **ongoing residual-approval harvesting** — smaller per event, continuous, unbounded in time.
+
+## 3. Are the other Radiant deployments ("mainnet" pools) at risk now?
+Radiant deployed on four chains. State verified independently on each (weakest-deployment-governs):
+
+| Chain | LendingPool | Current impl | Governance / control | State now | At risk? |
+|---|---|---|---|---|---|
+| **Arbitrum** | `0xF4B1486D…` | sweeper stub `0x3d4c…` | attacker EOAs (owner `0x0629b1…`, sweep admin `0xc24927bd…`) | **actively swept, last run ~9h ago** | **YES — live** |
+| **BNB Chain** | `0xd50cf00b…` | sweeper stub `0x3c09ae85…` (byte-identical design, 2,294 B) | **same** owner EOA `0x911215cf…`; **same** destination `0x070ca92f…`; BSC admin `0x579145d6…` (6,812 txs) | stub **live** (gate confirmed on current state), but **no sweeps to the destination in ~69 days** — bot dormant, residuals largely exhausted | **YES (capability live), but harvesting wound down** |
+| **Ethereum mainnet** | `0xA950974f…` | **verified `LendingPool`** `0x3f6b71c1…` (normal Aave-v2) | **3-day `TimelockController`** `0x27fc8f3b…`; attacker holds **no** `PROPOSER_ROLE` | normal code, not paused, wound down to dust (~$15–20k stables + ~62 wstETH) | **NO — legitimately governed; the timelock delay is why it survived the hack** |
+| **Base** | (Radiant Base market) | — | — | sweeper operator EOA `0x911215cf…` has **nonce 0 on Base** (never transacted) | **NO — operator never present** |
+
+**Direct answer to "are the mainnet pools at risk now?":** **Ethereum-mainnet Radiant is *not* at risk** from this — it runs verified normal code under a 3-day timelock the attacker does not control, and holds only dust. **Base is unaffected.** The attacker-controlled pools are **Arbitrum (actively draining today)** and **BNB Chain (backdoor live but dormant)** — and on both, the exposure is residual *user approvals*, since the pools' own principal was already drained in 2024. The cross-chain reuse (same owner key `0x911215cf…`, same collection address `0x070ca92f…`, sweeper infra pre-positioned on Arbitrum, BSC, and mainnet-laundering rails **before** the Oct-16 hack) is itself strong corroboration that one actor — the 2024 attacker — runs all of it.
